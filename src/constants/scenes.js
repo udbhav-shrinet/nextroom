@@ -154,5 +154,57 @@ export const SCENES = [
     elements: { palmLeaves: true, heavyMonsoon: true, woodenProw: true, riverRipple: true },
     description: 'Slow wooden houseboat cruising palm canals under torrential tropical rain.',
     defaultMix: { tinRoofRain: 0.75, thunder: 0.4, riverRapids: 0.35, tanpura: 0.2 }
+  },
+  {
+    id: 'seoul-alley',
+    name: 'Seoul Rainy Neon Alley',
+    category: 'Cities & Interiors',
+    time: 'Night',
+    bgGradient: 'linear-gradient(180deg, #09081a 0%, #171033 60%, #2a0b38 100%)',
+    windowGlow: '#ec4899',
+    skyColor: '#0b0717',
+    cityTints: ['#ec4899', '#8b5cf6', '#06b6d4'],
+    elements: { skyline: true, rain: true, deskProps: true },
+    description: 'Hongdae back-alley apartment watching neon signs reflect in fresh puddles.',
+    defaultMix: { rain: 0.7, cafe: 0.25, subwayRumble: 0.2 }
+  },
+  {
+    id: 'himalayan-dawn',
+    name: 'Himalayan Monastery Dawn',
+    category: 'Nature',
+    time: 'Dawn',
+    bgGradient: 'linear-gradient(180deg, #1c1917 0%, #44403c 45%, #ea580c 75%, #fde047 100%)',
+    windowGlow: '#fdba74',
+    skyColor: '#292524',
+    cityTints: ['#f97316', '#fbbf24'],
+    elements: { prayerFlags: true, mountainPass: true, mist: true },
+    description: 'High-altitude stone cloister looking across rising sun over snowy Himalayan ridges.',
+    defaultMix: { singingBowl: 0.5, wind: 0.4, solfeggio432: 0.35 }
+  },
+  {
+    id: 'mars-outpost',
+    name: 'Mars Chryse Outpost',
+    category: 'Space & Sci-Fi',
+    time: 'Dusk',
+    bgGradient: 'radial-gradient(circle at 60% 40%, #581c0c 0%, #2e0d05 60%, #0f0401 100%)',
+    windowGlow: '#f97316',
+    skyColor: '#1a0804',
+    cityTints: ['#ea580c', '#c2410c'],
+    elements: { redSoil: true, stars: true, domeStructure: true },
+    description: 'Sealed pressurized greenhouse looking out over rust-red basalt plains.',
+    defaultMix: { spaceshipDrone: 0.45, fanHum: 0.3, brownNoise: 0.25 }
+  },
+  {
+    id: 'greenhouse-conservatory',
+    name: 'Victorian Glass Conservatory',
+    category: 'Cozy & Fantasy',
+    time: 'Day',
+    bgGradient: 'radial-gradient(ellipse at 50% 50%, #1a2e1d 0%, #0d1a0f 65%, #050a06 100%)',
+    windowGlow: '#4ade80',
+    skyColor: '#132416',
+    cityTints: ['#22c55e', '#16a34a', '#86efac'],
+    elements: { foliage: true, glassCeiling: true, rain: true, teaSet: true },
+    description: 'Towering iron-ribbed glasshouse dense with tropical ferns and soft skylight rain.',
+    defaultMix: { rainLeaves: 0.6, kettle: 0.3, pageTurn: 0.25 }
   }
 ];

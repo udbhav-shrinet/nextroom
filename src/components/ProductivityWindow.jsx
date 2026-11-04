@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Timer, CheckSquare, FileText, Wind, Droplets, CloudSun,
-  Globe, Play, Pause, RotateCcw, Plus, Trash2, Pin, Download, Sparkles
+  Globe, Play, Pause, RotateCcw, Plus, Trash2, Pin, Download,
+  Sparkles, Eye, Sprout, Gamepad2
 } from 'lucide-react';
 import { audioEngine } from '../audio/audioEngine';
 import { getLiveWeather, searchCities } from '../services/radioApi';
@@ -14,12 +15,10 @@ export default function ProductivityWindow({
   pomoStats,
   setPomoStats
 }) {
-  const [activeTab, setActiveTab] = useState('pomo'); // 'pomo' | 'todo' | 'notes' | 'breathe' | 'water' | 'weather' | 'world'
+  const [activeTab, setActiveTab] = useState('pomo');
 
-  // -------------------------------------------------------------
-  // 1. Pomodoro Timer State
-  // -------------------------------------------------------------
-  const [pomoMode, setPomoMode] = useState('focus'); // 'focus' | 'break'
+  // Pomodoro Timer State
+  const [pomoMode, setPomoMode] = useState('focus');
   const [pomoDuration, setPomoDuration] = useState(25 * 60);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isPomoRunning, setIsPomoRunning] = useState(false);
@@ -31,7 +30,6 @@ export default function ProductivityWindow({
         setTimeLeft(prev => prev - 1);
       }, 1000);
     } else if (isPomoRunning && timeLeft === 0) {
-      // Completed session
       audioEngine.playPad(6); // Singing bowl chime
       if (pomoMode === 'focus') {
         setPomoStats(prev => ({
@@ -41,7 +39,7 @@ export default function ProductivityWindow({
         }));
         setPomoMode('break');
         setTimeLeft(5 * 60);
-        audioEngine.toggleDoorMuffle(true); // Auto-muffle on break
+        audioEngine.toggleDoorMuffle(true);
       } else {
         setPomoMode('focus');
         setTimeLeft(pomoDuration);
@@ -63,9 +61,7 @@ export default function ProductivityWindow({
     setPomoMode('focus');
   };
 
-  // -------------------------------------------------------------
-  // 2. To-Do Tasks State
-  // -------------------------------------------------------------
+  // To-Do Tasks State
   const [tasks, setTasks] = useState(() => {
     try {
       const saved = localStorage.getItem('nr_tasks');
@@ -101,7 +97,7 @@ export default function ProductivityWindow({
   const toggleTask = (id) => {
     setTasks(tasks.map(t => {
       if (t.id === id) {
-        if (!t.done) audioEngine.playPad(7); // Plink chime
+        if (!t.done) audioEngine.playPad(7);
         return { ...t, done: !t.done };
       }
       return t;
@@ -110,9 +106,7 @@ export default function ProductivityWindow({
 
   const deleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
 
-  // -------------------------------------------------------------
-  // 3. Markdown Notes State
-  // -------------------------------------------------------------
+  // Markdown Notes State
   const [noteContent, setNoteContent] = useState(() => {
     try {
       return localStorage.getItem('nr_notes') || '# NextRoom Sanctuary Notes\n\n- Living room art with physical desk lamp dimmer\n- 40,000+ real radio stations worldwide via Radio-Browser API\n- Studio DSP rack with Next Room door muffle switch\n- Offline procedural audio synth so it never stays silent';
@@ -142,10 +136,8 @@ export default function ProductivityWindow({
     audioEngine.playPad(0);
   };
 
-  // -------------------------------------------------------------
-  // 4. Breathing Pacer State
-  // -------------------------------------------------------------
-  const [breathPhase, setBreathPhase] = useState('Inhale'); // Inhale, Hold, Exhale, Hold
+  // Breathing Pacer State
+  const [breathPhase, setBreathPhase] = useState('Inhale');
   const [breathScale, setBreathScale] = useState(1);
   const [isBreathing, setIsBreathing] = useState(false);
 
@@ -153,7 +145,6 @@ export default function ProductivityWindow({
     if (!isBreathing) return;
     let timer;
     const cycle = async () => {
-      // Box breathing: 4s inhale, 4s hold, 4s exhale, 4s hold
       setBreathPhase('Inhale (4s)');
       setBreathScale(1.6);
       await new Promise(r => setTimeout(r, 4000));
@@ -176,9 +167,7 @@ export default function ProductivityWindow({
     return () => clearTimeout(timer);
   }, [isBreathing]);
 
-  // -------------------------------------------------------------
-  // 5. Water Hydration Tracker State
-  // -------------------------------------------------------------
+  // Water Hydration Tracker State
   const [waterMl, setWaterMl] = useState(() => {
     try {
       const saved = localStorage.getItem('nr_water');
@@ -196,19 +185,70 @@ export default function ProductivityWindow({
     try { localStorage.setItem('nr_water', String(next)); } catch {}
   };
 
-  // -------------------------------------------------------------
-  // 6. Weather State (Open-Meteo)
-  // -------------------------------------------------------------
+  // Focus Plant Growth (F217)
+  const plantGrowthScore = pomoStats.todaySessions * 25 + Math.floor(waterMl / 50);
+  const getPlantStage = () => {
+    if (plantGrowthScore < 30) return { name: 'Tiny Sprout 🌱', desc: 'Just germinated. Water and complete Pomodoros to nurture.', icon: '🌱' };
+    if (plantGrowthScore < 80) return { name: 'Vibrant Seedling 🌿', desc: 'Two healthy leaves catching the warm desk lamp light.', icon: '🌿' };
+    if (plantGrowthScore < 150) return { name: 'Lush Botanical Bush 🪴', desc: 'Thriving foliage nourished by deep focus sessions.', icon: '🪴' };
+    return { name: 'Blooming Sanctuary Bonsai 🌸', desc: 'Peak mastery reached! Gorgeous cherry blossoms in full bloom.', icon: '🌸' };
+  };
+  const plant = getPlantStage();
+
+  // Break Mini-Game: 2048-Lite (F215)
+  const [board, setBoard] = useState([
+    [2, 0, 0, 2],
+    [0, 4, 0, 0],
+    [0, 0, 8, 0],
+    [0, 0, 0, 0]
+  ]);
+  const [gameScore, setGameScore] = useState(16);
+
+  const resetGame = () => {
+    setBoard([
+      [2, 0, 0, 2],
+      [0, 4, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]
+    ]);
+    setGameScore(8);
+  };
+
+  const handleGameMove = (dir) => {
+    audioEngine.playPad(3);
+    setBoard(prev => {
+      const copy = prev.map(r => [...r]);
+      let added = 0;
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 3; c++) {
+          if (copy[r][c] !== 0 && copy[r][c] === copy[r][c + 1]) {
+            copy[r][c] *= 2;
+            added += copy[r][c];
+            copy[r][c + 1] = 0;
+          }
+        }
+      }
+      setGameScore(s => s + added);
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          if (copy[r][c] === 0 && Math.random() > 0.6) {
+            copy[r][c] = 2;
+            return copy;
+          }
+        }
+      }
+      return copy;
+    });
+  };
+
+  // Weather State (Open-Meteo)
   const [weatherData, setWeatherData] = useState(null);
-  const [citySearch, setCitySearch] = useState('Tokyo');
 
   useEffect(() => {
     getLiveWeather().then(data => setWeatherData(data));
   }, []);
 
-  // -------------------------------------------------------------
-  // 7. Pinned World Clock Cities
-  // -------------------------------------------------------------
+  // Pinned World Clock Cities
   const [worldCities] = useState([
     { name: 'Tokyo', zone: 'Asia/Tokyo', flag: '🇯🇵' },
     { name: 'Paris', zone: 'Europe/Paris', flag: '🇫🇷' },
@@ -232,6 +272,8 @@ export default function ProductivityWindow({
           { id: 'pomo', label: 'Pomodoro', icon: Timer },
           { id: 'todo', label: 'To-Do', icon: CheckSquare },
           { id: 'notes', label: 'Notes', icon: FileText },
+          { id: 'plant', label: 'Focus Plant', icon: Sprout },
+          { id: 'game', label: 'Break 2048', icon: Gamepad2 },
           { id: 'breathe', label: 'Breathing', icon: Wind },
           { id: 'water', label: 'Water', icon: Droplets },
           { id: 'weather', label: 'Weather', icon: CloudSun },
@@ -242,7 +284,7 @@ export default function ProductivityWindow({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1 rounded-xl text-xs font-mono flex items-center gap-1.5 transition-all whitespace-nowrap ${
+              className={`px-3 py-1 rounded-xl text-xs font-mono flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer ${
                 activeTab === tab.id
                   ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm'
                   : 'text-neutral-400 hover:text-white bg-white/5 border border-white/5'
@@ -258,13 +300,12 @@ export default function ProductivityWindow({
       {/* 1. Pomodoro View */}
       {activeTab === 'pomo' && (
         <div className="flex flex-col items-center justify-between flex-1 py-4">
-          {/* Preset Buttons */}
           <div className="flex items-center gap-2">
             {[25, 50, 90].map(mins => (
               <button
                 key={mins}
                 onClick={() => setPomoTime(mins)}
-                className={`px-3 py-1 rounded-lg text-xs font-mono border ${
+                className={`px-3 py-1 rounded-lg text-xs font-mono border cursor-pointer ${
                   pomoDuration === mins * 60
                     ? 'bg-purple-600/30 border-purple-400 text-purple-200'
                     : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
@@ -275,7 +316,6 @@ export default function ProductivityWindow({
             ))}
           </div>
 
-          {/* Big Circular Timer Display */}
           <div className="flex flex-col items-center justify-center my-6">
             <div className="text-6xl font-mono font-bold tracking-tight text-white mb-2">
               {formatPomoTime(timeLeft)}
@@ -286,11 +326,10 @@ export default function ProductivityWindow({
             </div>
           </div>
 
-          {/* Play/Pause & Reset */}
           <div className="flex items-center gap-3">
             <button
               onClick={togglePomo}
-              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-semibold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-transform active:scale-95"
+              className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-semibold flex items-center gap-2 shadow-lg shadow-purple-600/30 transition-transform active:scale-95 cursor-pointer"
             >
               {isPomoRunning ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
               <span>{isPomoRunning ? 'Pause' : 'Start Focus'}</span>
@@ -298,14 +337,13 @@ export default function ProductivityWindow({
 
             <button
               onClick={resetPomo}
-              className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 transition-colors"
+              className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 transition-colors cursor-pointer"
               title="Reset Timer"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Session Stats Counter */}
           <div className="w-full pt-4 border-t border-white/10 flex items-center justify-around text-xs font-mono text-neutral-400">
             <div>
               Today: <span className="text-purple-300 font-bold">{pomoStats.todaySessions} 🍅</span>
@@ -323,7 +361,6 @@ export default function ProductivityWindow({
       {/* 2. To-Do View */}
       {activeTab === 'todo' && (
         <div className="flex flex-col gap-3 flex-1 overflow-hidden">
-          {/* New Task Input */}
           <form onSubmit={addTask} className="flex gap-2">
             <input
               type="text"
@@ -334,13 +371,12 @@ export default function ProductivityWindow({
             />
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono transition-colors"
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono transition-colors cursor-pointer"
             >
               Add
             </button>
           </form>
 
-          {/* Tasks List */}
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
             {tasks.map(t => (
               <div
@@ -365,14 +401,14 @@ export default function ProductivityWindow({
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => setActiveLockedTask(t)}
-                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-600/20 text-purple-300 hover:bg-purple-600/40"
+                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-600/20 text-purple-300 hover:bg-purple-600/40 cursor-pointer"
                     title="Lock into top HUD"
                   >
                     Lock In
                   </button>
                   <button
                     onClick={() => deleteTask(t.id)}
-                    className="p-1 text-neutral-400 hover:text-red-400"
+                    className="p-1 text-neutral-400 hover:text-red-400 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -392,7 +428,7 @@ export default function ProductivityWindow({
             </span>
             <button
               onClick={pinAsStickyNote}
-              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-mono flex items-center gap-1.5 transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Pin className="w-3.5 h-3.5" />
               <span>Pin to Room Wall</span>
@@ -407,16 +443,74 @@ export default function ProductivityWindow({
         </div>
       )}
 
-      {/* 4. Breathing View */}
+      {/* 4. Focus Plant (F217) */}
+      {activeTab === 'plant' && (
+        <div className="flex flex-col items-center justify-center flex-1 py-4 gap-4 text-center">
+          <div className="text-7xl animate-bounce mb-2">
+            {plant.icon}
+          </div>
+          <div>
+            <div className="text-base font-mono font-bold text-emerald-300">{plant.name}</div>
+            <div className="text-xs text-neutral-400 max-w-xs mt-1">{plant.desc}</div>
+          </div>
+          <div className="w-64 bg-black/40 rounded-full h-3 overflow-hidden border border-white/10 mt-2">
+            <div
+              className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-700"
+              style={{ width: `${Math.min(100, (plantGrowthScore / 150) * 100)}%` }}
+            />
+          </div>
+          <div className="text-[11px] font-mono text-neutral-400">
+            Nourishment: {plantGrowthScore} points ({pomoStats.todaySessions} sessions, {waterMl}ml logged)
+          </div>
+        </div>
+      )}
+
+      {/* 5. Break Mini-Game: 2048-Lite (F215) */}
+      {activeTab === 'game' && (
+        <div className="flex flex-col items-center justify-between flex-1 py-2">
+          <div className="flex items-center justify-between w-64 text-xs font-mono">
+            <span className="text-neutral-400">Score: <span className="text-purple-300 font-bold">{gameScore}</span></span>
+            <button onClick={resetGame} className="text-neutral-400 hover:text-white cursor-pointer">Reset</button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 bg-black/50 p-3 rounded-2xl border border-white/10">
+            {board.map((row, r) => row.map((cell, c) => (
+              <div
+                key={`${r}-${c}`}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center font-mono font-bold text-xs transition-all ${
+                  cell === 0 ? 'bg-white/5 text-transparent' :
+                  cell === 2 ? 'bg-purple-900/60 text-purple-200' :
+                  cell === 4 ? 'bg-purple-700/60 text-purple-100' :
+                  cell === 8 ? 'bg-pink-700/60 text-pink-100' :
+                  cell === 16 ? 'bg-rose-600/70 text-white' :
+                  cell === 32 ? 'bg-amber-600/80 text-white' :
+                  'bg-yellow-500 text-black shadow-lg shadow-yellow-500/50'
+                }`}
+              >
+                {cell > 0 ? cell : ''}
+              </div>
+            )))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5 w-48 text-xs font-mono">
+            <div />
+            <button onClick={() => handleGameMove('up')} className="p-2 bg-white/5 rounded-lg hover:bg-white/10 text-center cursor-pointer">↑</button>
+            <div />
+            <button onClick={() => handleGameMove('left')} className="p-2 bg-white/5 rounded-lg hover:bg-white/10 text-center cursor-pointer">←</button>
+            <button onClick={() => handleGameMove('down')} className="p-2 bg-white/5 rounded-lg hover:bg-white/10 text-center cursor-pointer">↓</button>
+            <button onClick={() => handleGameMove('right')} className="p-2 bg-white/5 rounded-lg hover:bg-white/10 text-center cursor-pointer">→</button>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Breathing View */}
       {activeTab === 'breathe' && (
         <div className="flex flex-col items-center justify-center flex-1 py-4 gap-6">
           <div className="relative flex items-center justify-center w-52 h-52">
-            {/* Outer halo */}
             <div
               className="absolute inset-0 rounded-full bg-purple-500/20 blur-xl transition-all duration-1000"
               style={{ transform: `scale(${breathScale})` }}
             />
-            {/* Main breathing orb */}
             <div
               className="w-36 h-36 rounded-full border border-purple-400/50 bg-gradient-to-tr from-purple-600/40 to-cyan-500/30 backdrop-blur-md flex flex-col items-center justify-center text-center p-4 transition-transform duration-1000 shadow-xl"
               style={{ transform: `scale(${breathScale})` }}
@@ -429,14 +523,14 @@ export default function ProductivityWindow({
 
           <button
             onClick={() => setIsBreathing(!isBreathing)}
-            className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-semibold transition-colors"
+            className="px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-semibold transition-colors cursor-pointer"
           >
             {isBreathing ? 'Stop Exercise' : 'Begin Box Breathing'}
           </button>
         </div>
       )}
 
-      {/* 5. Water Hydration View */}
+      {/* 7. Water Hydration View */}
       {activeTab === 'water' && (
         <div className="flex flex-col items-center justify-between flex-1 py-4">
           <div className="text-center">
@@ -448,7 +542,6 @@ export default function ProductivityWindow({
             </div>
           </div>
 
-          {/* Animated Water Level Bottle */}
           <div className="w-20 h-40 rounded-2xl border-2 border-cyan-400/40 bg-black/40 overflow-hidden relative flex flex-col justify-end p-1">
             <div
               className="w-full bg-gradient-to-t from-cyan-600 to-cyan-400 rounded-xl transition-all duration-500"
@@ -456,17 +549,16 @@ export default function ProductivityWindow({
             />
           </div>
 
-          {/* Quick-add buttons */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => addWater(250)}
-              className="px-3 py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-200 border border-cyan-500/30 text-xs font-mono"
+              className="px-3 py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-200 border border-cyan-500/30 text-xs font-mono cursor-pointer"
             >
               +250 ml Glass
             </button>
             <button
               onClick={() => addWater(500)}
-              className="px-3 py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-200 border border-cyan-500/30 text-xs font-mono"
+              className="px-3 py-1.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-200 border border-cyan-500/30 text-xs font-mono cursor-pointer"
             >
               +500 ml Bottle
             </button>
@@ -474,7 +566,7 @@ export default function ProductivityWindow({
         </div>
       )}
 
-      {/* 6. Weather View */}
+      {/* 8. Weather View */}
       {activeTab === 'weather' && (
         <div className="flex flex-col gap-4 flex-1">
           {weatherData ? (
@@ -504,7 +596,7 @@ export default function ProductivityWindow({
         </div>
       )}
 
-      {/* 7. World Clock View */}
+      {/* 9. World Clock View */}
       {activeTab === 'world' && (
         <div className="grid grid-cols-2 gap-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
           {worldCities.map(city => {

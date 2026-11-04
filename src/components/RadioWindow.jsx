@@ -1,16 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Globe, Dices, Upload, Link, Radio, Play, CheckCircle2 } from 'lucide-react';
+import {
+  Search, Globe, Dices, Upload, Link, Radio, Play, CheckCircle2,
+  Mic, Clock, Compass, Disc, Sparkles
+} from 'lucide-react';
 import { FLAGSHIP_STATIONS } from '../constants/flagshipStations';
 import { searchStations, getRandomWorldStation } from '../services/radioApi';
 import { audioEngine } from '../audio/audioEngine';
 
+const MAP_COUNTRIES = [
+  { code: 'US', name: 'United States', flag: '🇺🇸', stations: '8,420', topGenre: 'Lo-Fi / Ambient / Jazz', x: 80, y: 70, w: 90, h: 50 },
+  { code: 'FR', name: 'France', flag: '🇫🇷', stations: '3,110', topGenre: 'French Chanson / Electro Jazz', x: 235, y: 65, w: 35, h: 35 },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', stations: '4,520', topGenre: 'Underground / Electronic / BBC', x: 220, y: 45, w: 30, h: 30 },
+  { code: 'JP', name: 'Japan', flag: '🇯🇵', stations: '1,890', topGenre: 'City Pop / Anime Lo-Fi / Jazz', x: 420, y: 75, w: 40, h: 40 },
+  { code: 'CH', name: 'Switzerland', flag: '🇨🇭', stations: '940', topGenre: 'Symphonic / Mellow Classic', x: 250, y: 75, w: 25, h: 25 },
+  { code: 'ES', name: 'Spain', flag: '🇪🇸', stations: '2,650', topGenre: 'Balearic / Chillout / Flamenco', x: 215, y: 95, w: 35, h: 30 },
+  { code: 'IN', name: 'India', flag: '🇮🇳', stations: '1,420', topGenre: 'Classical Ragas / Bollywood / Monsoon', x: 335, y: 105, w: 45, h: 45 },
+  { code: 'BR', name: 'Brazil', flag: '🇧🇷', stations: '2,150', topGenre: 'Bossa Nova / Samba / Tropicalia', x: 145, y: 145, w: 55, h: 55 },
+  { code: 'AU', name: 'Australia', flag: '🇦🇺', stations: '1,280', topGenre: 'Indie Wave / Chillhop / Triple J', x: 410, y: 155, w: 55, h: 45 }
+];
+
 export default function RadioWindow({ currentStation, onSelectStation }) {
-  const [activeTab, setActiveTab] = useState('flagship'); // 'flagship' | 'explore' | 'byoa' | 'passport'
+  const [activeTab, setActiveTab] = useState('flagship'); // 'flagship' | 'map' | 'explore' | 'byoa' | 'passport'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [customUrl, setCustomUrl] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [sleepMins, setSleepMins] = useState(0);
+  const [sleepCountdown, setSleepCountdown] = useState(0);
+
   const [passportStamps, setPassportStamps] = useState(() => {
     try {
       const saved = localStorage.getItem('nr_passport');
@@ -20,14 +39,21 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
     }
   });
 
+  // Audio Engine listeners for recorder and sleep timer
+  useEffect(() => {
+    const unsub = audioEngine.subscribe((event, data) => {
+      if (event === 'recordState') setIsRecording(data);
+      if (event === 'sleepTimer') setSleepCountdown(data);
+    });
+    return unsub;
+  }, []);
+
   // Track visited countries
   useEffect(() => {
     if (currentStation?.country && !passportStamps.includes(currentStation.country)) {
       const updated = [...passportStamps, currentStation.country];
       setPassportStamps(updated);
-      try {
-        localStorage.setItem('nr_passport', JSON.stringify(updated));
-      } catch {}
+      try { localStorage.setItem('nr_passport', JSON.stringify(updated)); } catch {}
     }
   }, [currentStation, passportStamps]);
 
@@ -47,6 +73,19 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
   const handleWorldSpin = () => {
     const randomStation = getRandomWorldStation();
     onSelectStation(randomStation);
+  };
+
+  const handleCountryMapClick = async (country) => {
+    // Search top stations for that country
+    setIsSearching(true);
+    const results = await searchStations({ country: country.code, limit: 10 });
+    if (results.length > 0) {
+      onSelectStation(results[0]);
+    } else {
+      const fallback = FLAGSHIP_STATIONS.find(s => s.countryCode === country.code) || FLAGSHIP_STATIONS[0];
+      onSelectStation(fallback);
+    }
+    setIsSearching(false);
   };
 
   const handleCustomUrlPlay = (e) => {
@@ -81,11 +120,24 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
     onSelectStation(station);
   };
 
+  const toggleRecording = () => {
+    if (isRecording) {
+      audioEngine.stopRecording();
+    } else {
+      audioEngine.startRecording();
+    }
+  };
+
+  const setTimer = (mins) => {
+    setSleepMins(mins);
+    audioEngine.setSleepTimer(mins);
+  };
+
   return (
     <div className="flex flex-col h-full gap-4">
-      {/* Tab Switcher & Quick Actions */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-3">
-        <div className="flex items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5">
+      {/* Top Controls: Tabs & Action Badges */}
+      <div className="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-1 p-1 bg-black/40 rounded-xl border border-white/5">
           <button
             onClick={() => setActiveTab('flagship')}
             className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
@@ -95,6 +147,16 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
             }`}
           >
             Flagship (30)
+          </button>
+          <button
+            onClick={() => setActiveTab('map')}
+            className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
+              activeTab === 'map'
+                ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            World Map
           </button>
           <button
             onClick={() => setActiveTab('explore')}
@@ -128,19 +190,59 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
           </button>
         </div>
 
-        <button
-          onClick={handleWorldSpin}
-          className="px-2.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 text-xs font-mono flex items-center gap-1.5 transition-all shadow-sm"
-          title="Pick a random active station worldwide"
-        >
-          <Dices className="w-3.5 h-3.5" />
-          <span>World Spin</span>
-        </button>
+        {/* Right side utilities: World Spin, Master Recorder, Sleep Timer */}
+        <div className="flex items-center gap-2">
+          {/* Recorder */}
+          <button
+            onClick={toggleRecording}
+            className={`px-2.5 py-1.5 rounded-xl border text-xs font-mono flex items-center gap-1.5 transition-all shadow-sm ${
+              isRecording
+                ? 'bg-red-600/30 border-red-500 text-red-200 animate-pulse'
+                : 'bg-white/5 border-white/10 text-neutral-300 hover:text-white hover:bg-white/10'
+            }`}
+            title="Record post-DSP master output to WebM audio"
+          >
+            <Mic className="w-3.5 h-3.5 text-red-400" />
+            <span>{isRecording ? 'REC ●' : 'Record'}</span>
+          </button>
+
+          {/* Sleep Timer */}
+          <div className="flex items-center gap-1 bg-black/40 px-2 py-1 rounded-xl border border-white/5 text-xs font-mono">
+            <Clock className="w-3.5 h-3.5 text-purple-400" />
+            {sleepCountdown > 0 ? (
+              <span className="text-purple-300">
+                {Math.floor(sleepCountdown / 60)}m {sleepCountdown % 60}s
+              </span>
+            ) : (
+              <select
+                value={sleepMins}
+                onChange={(e) => setTimer(parseInt(e.target.value, 10))}
+                className="bg-transparent text-neutral-300 focus:outline-none cursor-pointer"
+              >
+                <option value="0">Sleep: Off</option>
+                <option value="15">15m</option>
+                <option value="30">30m</option>
+                <option value="45">45m</option>
+                <option value="60">60m</option>
+              </select>
+            )}
+          </div>
+
+          {/* World Spin */}
+          <button
+            onClick={handleWorldSpin}
+            className="px-2.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 text-xs font-mono flex items-center gap-1.5 transition-all shadow-sm"
+            title="Pick a random active station worldwide"
+          >
+            <Dices className="w-3.5 h-3.5" />
+            <span>Spin</span>
+          </button>
+        </div>
       </div>
 
-      {/* Flagships List */}
+      {/* 1. Flagship Stations */}
       {activeTab === 'flagship' && (
-        <div className="space-y-2 overflow-y-auto pr-1 flex-1">
+        <div className="space-y-2 overflow-y-auto pr-1 flex-1 custom-scrollbar">
           {FLAGSHIP_STATIONS.map((station) => {
             const isCurrent = currentStation?.id === station.id;
             return (
@@ -178,10 +280,113 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
         </div>
       )}
 
-      {/* Global Explore Search */}
+      {/* 2. Interactive World Map Selector */}
+      {activeTab === 'map' && (
+        <div className="flex flex-col gap-3 flex-1 overflow-hidden">
+          <div className="text-xs text-neutral-300 font-mono flex items-center justify-between">
+            <span>Click any territory pin to tune into local live radio:</span>
+            <span className="text-purple-300 font-bold">40,000+ Stations Active</span>
+          </div>
+
+          {/* Stylized Vector World Map Container */}
+          <div className="relative flex-1 bg-black/50 rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center p-2">
+            <svg viewBox="0 0 500 240" className="w-full h-full">
+              {/* Simplified world background continents */}
+              <path
+                d="M40,50 Q100,20 180,60 Q170,120 120,130 Q60,110 40,50 Z"
+                fill="rgba(192, 132, 252, 0.08)"
+                stroke="rgba(192, 132, 252, 0.2)"
+                strokeWidth="1"
+              />
+              <path
+                d="M120,135 Q170,140 180,180 Q160,230 130,220 Q100,180 120,135 Z"
+                fill="rgba(192, 132, 252, 0.08)"
+                stroke="rgba(192, 132, 252, 0.2)"
+                strokeWidth="1"
+              />
+              <path
+                d="M210,40 Q290,30 310,70 Q280,120 220,110 Q200,70 210,40 Z"
+                fill="rgba(192, 132, 252, 0.08)"
+                stroke="rgba(192, 132, 252, 0.2)"
+                strokeWidth="1"
+              />
+              <path
+                d="M215,115 Q285,115 280,170 Q250,210 220,170 Q205,140 215,115 Z"
+                fill="rgba(192, 132, 252, 0.08)"
+                stroke="rgba(192, 132, 252, 0.2)"
+                strokeWidth="1"
+              />
+              <path
+                d="M310,40 Q460,30 480,90 Q430,140 330,120 Q300,70 310,40 Z"
+                fill="rgba(192, 132, 252, 0.08)"
+                stroke="rgba(192, 132, 252, 0.2)"
+                strokeWidth="1"
+              />
+              <path
+                d="M390,140 Q470,140 460,190 Q410,210 380,180 Q370,150 390,140 Z"
+                fill="rgba(192, 132, 252, 0.08)"
+                stroke="rgba(192, 132, 252, 0.2)"
+                strokeWidth="1"
+              />
+
+              {/* Clickable Country Nodes */}
+              {MAP_COUNTRIES.map(c => (
+                <g
+                  key={c.code}
+                  className="cursor-pointer group"
+                  onClick={() => handleCountryMapClick(c)}
+                >
+                  <circle
+                    cx={c.x + c.w / 2}
+                    cy={c.y + c.h / 2}
+                    r="8"
+                    className="fill-purple-500/40 stroke-purple-400 group-hover:fill-purple-400 transition-all duration-200"
+                    strokeWidth="1.5"
+                  />
+                  <circle
+                    cx={c.x + c.w / 2}
+                    cy={c.y + c.h / 2}
+                    r="14"
+                    className="fill-purple-400/10 group-hover:fill-purple-400/30 animate-ping opacity-75"
+                  />
+                  <text
+                    x={c.x + c.w / 2}
+                    y={c.y + c.h / 2 - 12}
+                    textAnchor="middle"
+                    className="fill-neutral-200 text-[9px] font-mono font-bold group-hover:fill-white"
+                  >
+                    {c.flag} {c.code}
+                  </text>
+                </g>
+              ))}
+            </svg>
+          </div>
+
+          {/* Quick country list tags */}
+          <div className="grid grid-cols-3 gap-2">
+            {MAP_COUNTRIES.map(c => (
+              <button
+                key={c.code}
+                onClick={() => handleCountryMapClick(c)}
+                className="p-2 rounded-xl bg-white/5 border border-white/5 hover:border-purple-400/40 text-left transition-colors flex items-center justify-between"
+              >
+                <div>
+                  <div className="text-xs font-semibold text-neutral-200 flex items-center gap-1.5">
+                    <span>{c.flag}</span>
+                    <span>{c.name}</span>
+                  </div>
+                  <div className="text-[10px] text-neutral-400">{c.topGenre}</div>
+                </div>
+                <span className="font-mono text-[10px] text-purple-300">{c.stations}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. Global Explore Search */}
       {activeTab === 'explore' && (
         <div className="flex flex-col gap-3 flex-1 overflow-hidden">
-          {/* Search Inputs */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -211,8 +416,7 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
             </select>
           </div>
 
-          {/* Results List */}
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
             {isSearching ? (
               <div className="flex items-center justify-center h-32 text-xs text-purple-300 font-mono animate-pulse">
                 Scanning Radio-Browser frequencies...
@@ -248,10 +452,9 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
         </div>
       )}
 
-      {/* BYOA Local Audio & Custom Stream URL */}
+      {/* 4. BYOA Local Audio & Custom Stream URL */}
       {activeTab === 'byoa' && (
         <div className="flex flex-col gap-6 p-2">
-          {/* Local File Drop */}
           <div className="border-2 border-dashed border-white/15 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center hover:border-purple-500/50 transition-colors">
             <Upload className="w-8 h-8 text-purple-400" />
             <div>
@@ -264,7 +467,6 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
             </label>
           </div>
 
-          {/* Custom Stream URL */}
           <form onSubmit={handleCustomUrlPlay} className="flex flex-col gap-2">
             <label className="text-xs font-mono text-neutral-300 flex items-center gap-1.5">
               <Link className="w-3.5 h-3.5 text-purple-400" />
@@ -289,9 +491,9 @@ export default function RadioWindow({ currentStation, onSelectStation }) {
         </div>
       )}
 
-      {/* Country Passport */}
+      {/* 5. Country Passport */}
       {activeTab === 'passport' && (
-        <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
+        <div className="flex flex-col gap-3 flex-1 overflow-y-auto custom-scrollbar">
           <div className="text-xs text-neutral-300">
             Listen to global stations to collect world stamps in your sanctuary passport:
           </div>

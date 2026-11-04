@@ -51,6 +51,13 @@ class AudioEngine {
     this.wsConnected = false;
 
     // Listeners
+    // Recorder & Sleep Timer
+    this.mediaRecorder = null;
+    this.recordedChunks = [];
+    this.isRecording = false;
+    this.sleepTimer = null;
+    this.sleepTimeLeft = 0;
+    this.streamDest = null;
     this.subscribers = new Set();
   }
 
@@ -171,6 +178,8 @@ class AudioEngine {
 
     this.masterGain.connect(this.limiter);
     this.limiter.connect(this.analyser);
+        this.streamDest = this.ctx.createMediaStreamDestination();
+    this.analyser.connect(this.streamDest);
     this.analyser.connect(this.ctx.destination);
 
     // Create audio elements
@@ -904,6 +913,77 @@ class AudioEngine {
     } catch {
       this.wsConnected = false;
     }
+  }
+
+
+  // -------------------------------------------------------------
+  // Master DSP Recorder (MediaRecorder API)
+  // -------------------------------------------------------------
+  startRecording() {
+    if (!this.streamDest) return false;
+    this.recordedChunks = [];
+    try {
+      this.mediaRecorder = new MediaRecorder(this.streamDest.stream, { mimeType: 'audio/webm' });
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.recordedChunks.push(e.data);
+      };
+      this.mediaRecorder.onstop = () => {
+        const blob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nextroom-session-${Date.now()}.webm`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.notify('recordState', false);
+      };
+      this.mediaRecorder.start();
+      this.isRecording = true;
+      this.notify('recordState', true);
+      return true;
+    } catch (err) {
+      console.warn('Recorder start error:', err);
+      return false;
+    }
+  }
+
+  stopRecording() {
+    if (this.mediaRecorder && this.isRecording) {
+      this.mediaRecorder.stop();
+      this.isRecording = false;
+      this.notify('recordState', false);
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Sleep Timer with Gradual Volume Roll-off
+  // -------------------------------------------------------------
+  setSleepTimer(minutes) {
+    if (this.sleepTimer) clearInterval(this.sleepTimer);
+    if (!minutes || minutes <= 0) {
+      this.sleepTimeLeft = 0;
+      this.notify('sleepTimer', 0);
+      return;
+    }
+
+    this.sleepTimeLeft = minutes * 60;
+    const initialVol = this.volume;
+    this.notify('sleepTimer', this.sleepTimeLeft);
+
+    this.sleepTimer = setInterval(() => {
+      this.sleepTimeLeft--;
+      this.notify('sleepTimer', this.sleepTimeLeft);
+
+      // Roll off volume smoothly in the final 2 minutes
+      if (this.sleepTimeLeft <= 120 && this.sleepTimeLeft > 0) {
+        this.setVolume((this.sleepTimeLeft / 120) * initialVol);
+      } else if (this.sleepTimeLeft <= 0) {
+        clearInterval(this.sleepTimer);
+        this.sleepTimer = null;
+        this.pause();
+        this.setVolume(initialVol);
+      }
+    }, 1000);
   }
 
   handleCliMessage(msg) {

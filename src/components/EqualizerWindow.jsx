@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sliders, RotateCcw, Sparkles, Volume2, Waves, Radio, DoorClosed } from 'lucide-react';
+import {
+  Sliders, RotateCcw, Sparkles, Volume2, Waves, Radio,
+  DoorClosed, Disc, Radio as RadioIcon, Activity
+} from 'lucide-react';
 import { audioEngine } from '../audio/audioEngine';
 
 const EQ_PRESETS = [
@@ -27,63 +30,111 @@ export default function EqualizerWindow({ isMuffled, onToggleMuffle }) {
   const [orbit, setOrbit] = useState(audioEngine.orbit8D);
   const [varispeed, setVarispeed] = useState(audioEngine.varispeed);
   const [activePreset, setActivePreset] = useState('Flat Reference');
-  const spectrumCanvasRef = useRef(null);
+  const [vizSkin, setVizSkin] = useState('spectrum'); // 'spectrum' | 'waveform' | 'vu'
+  const canvasRef = useRef(null);
 
-  // Live FFT spectrum analyzer
+  // Live Multi-Skin Audio Visualizer (Spectrum, Oscilloscope, VU Meters)
   useEffect(() => {
-    const canvas = spectrumCanvasRef.current;
+    const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let animId;
 
     const render = () => {
-      const data = audioEngine.getSpectrumData();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const count = 48;
-      const barWidth = canvas.width / count;
+      if (vizSkin === 'spectrum') {
+        const data = audioEngine.getSpectrumData();
+        const count = 48;
+        const barWidth = canvas.width / count;
 
-      // Draw response fill
-      ctx.beginPath();
-      ctx.moveTo(0, canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+        for (let i = 0; i < count; i++) {
+          const val = data[i * 2] || 0;
+          const h = (val / 255) * canvas.height;
+          const x = i * barWidth;
+          const y = canvas.height - h;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.closePath();
 
-      for (let i = 0; i < count; i++) {
-        const val = data[i * 2] || 0;
-        const h = (val / 255) * canvas.height;
-        const x = i * barWidth;
-        const y = canvas.height - h;
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, 'rgba(192, 132, 252, 0.45)');
+        grad.addColorStop(1, 'rgba(192, 132, 252, 0.02)');
+        ctx.fillStyle = grad;
+        ctx.fill();
 
-        ctx.lineTo(x, y);
+        ctx.beginPath();
+        for (let i = 0; i < count; i++) {
+          const val = data[i * 2] || 0;
+          const h = (val / 255) * canvas.height;
+          const x = i * barWidth;
+          const y = canvas.height - h;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+      } else if (vizSkin === 'waveform') {
+        // Oscilloscope Trace
+        const wave = audioEngine.getWaveformData();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.beginPath();
+
+        const sliceWidth = canvas.width / wave.length;
+        let x = 0;
+        for (let i = 0; i < wave.length; i++) {
+          const v = wave[i] / 128.0;
+          const y = (v * canvas.height) / 2;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+          x += sliceWidth;
+        }
+        ctx.stroke();
+
+      } else if (vizSkin === 'vu') {
+        // Dual Stereo VU Needles
+        const data = audioEngine.getSpectrumData();
+        const leftVal = (data[4] || 0) / 255;
+        const rightVal = (data[8] || 0) / 255;
+
+        // Draw Left and Right VU Meters
+        const drawNeedle = (centerX, centerY, radius, value, label) => {
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = 4;
+          ctx.stroke();
+
+          // Needle angle (-135deg to -45deg)
+          const angle = Math.PI + 0.3 + value * (Math.PI - 0.6);
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(centerX + Math.cos(angle) * (radius - 5), centerY + Math.sin(angle) * (radius - 5));
+          ctx.strokeStyle = value > 0.85 ? '#ef4444' : '#c084fc';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = '#a3a3a3';
+          ctx.font = '9px monospace';
+          ctx.fillText(label, centerX - 8, centerY + 12);
+        };
+
+        drawNeedle(canvas.width * 0.3, canvas.height * 0.75, 45, leftVal, 'CH L');
+        drawNeedle(canvas.width * 0.7, canvas.height * 0.75, 45, rightVal, 'CH R');
       }
-      ctx.lineTo(canvas.width, canvas.height);
-      ctx.closePath();
-
-      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      grad.addColorStop(0, 'rgba(192, 132, 252, 0.45)');
-      grad.addColorStop(1, 'rgba(192, 132, 252, 0.02)');
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // Top glowing stroke line
-      ctx.beginPath();
-      for (let i = 0; i < count; i++) {
-        const val = data[i * 2] || 0;
-        const h = (val / 255) * canvas.height;
-        const x = i * barWidth;
-        const y = canvas.height - h;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = '#c084fc';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
 
       animId = requestAnimationFrame(render);
     };
 
     render();
     return () => cancelAnimationFrame(animId);
-  }, []);
+  }, [vizSkin]);
 
   const handleBandChange = (idx, val) => {
     const next = [...eqGains];
@@ -112,21 +163,40 @@ export default function EqualizerWindow({ isMuffled, onToggleMuffle }) {
   };
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      {/* Top Visualizer Canvas & Presets Bar */}
+    <div className="flex flex-col gap-4 h-full overflow-y-auto pr-1 custom-scrollbar">
+      {/* Top Visualizer Canvas & Multi-Skin Selector */}
       <div className="flex flex-col gap-2">
-        <div className="relative h-24 bg-black/50 rounded-xl overflow-hidden border border-white/10">
+        <div className="relative h-28 bg-black/50 rounded-2xl overflow-hidden border border-white/10">
           <canvas
-            ref={spectrumCanvasRef}
+            ref={canvasRef}
             width={480}
-            height={96}
+            height={112}
             className="w-full h-full"
           />
           <div className="absolute top-2 left-3 font-mono text-[10px] text-neutral-400">
-            FFT 128-BIN REAL-TIME SPECTRUM
+            MASTER DSP MONITOR // {vizSkin.toUpperCase()}
           </div>
-          <div className="absolute top-2 right-3 font-mono text-[10px] text-purple-300">
-            {activePreset}
+          <div className="absolute top-2 right-3 flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded-lg border border-white/10 text-[10px] font-mono">
+            <button
+              onClick={() => setVizSkin('spectrum')}
+              className={`${vizSkin === 'spectrum' ? 'text-purple-300 font-bold' : 'text-neutral-400'}`}
+            >
+              FFT
+            </button>
+            <span className="text-neutral-600">|</span>
+            <button
+              onClick={() => setVizSkin('waveform')}
+              className={`${vizSkin === 'waveform' ? 'text-purple-300 font-bold' : 'text-neutral-400'}`}
+            >
+              Wave
+            </button>
+            <span className="text-neutral-600">|</span>
+            <button
+              onClick={() => setVizSkin('vu')}
+              className={`${vizSkin === 'vu' ? 'text-purple-300 font-bold' : 'text-neutral-400'}`}
+            >
+              VU
+            </button>
           </div>
         </div>
 
@@ -173,7 +243,7 @@ export default function EqualizerWindow({ isMuffled, onToggleMuffle }) {
         })}
       </div>
 
-      {/* Master DSP FX Strip: Next Room, Saturation, Reverb, 8D Orbit, Varispeed */}
+      {/* Master DSP FX Grid: Next Room, 8D Orbit, Saturation, Reverb */}
       <div className="grid grid-cols-2 gap-3 text-xs">
         {/* Next Room / Door Muffle */}
         <div className="p-3 bg-white/5 border border-white/5 rounded-xl flex items-center justify-between">
@@ -202,7 +272,7 @@ export default function EqualizerWindow({ isMuffled, onToggleMuffle }) {
             <Waves className="w-4 h-4 text-cyan-400" />
             <div>
               <div className="font-semibold text-neutral-200">8D Audio Orbit</div>
-              <div className="text-[10px] text-neutral-400">Circular LFO Panner</div>
+              <div className="text-[10px] text-neutral-400">Headphone LFO Panner</div>
             </div>
           </div>
           <button
@@ -264,7 +334,7 @@ export default function EqualizerWindow({ isMuffled, onToggleMuffle }) {
         </div>
       </div>
 
-      {/* Varispeed Pitch & Speed (Nightcore vs Slowed + Reverb) */}
+      {/* Varispeed Pitch & Speed */}
       <div className="p-3 bg-white/5 border border-white/5 rounded-xl flex flex-col gap-2">
         <div className="flex justify-between font-mono text-[11px]">
           <span className="text-neutral-300">Varispeed Pitch & Speed</span>
@@ -292,14 +362,14 @@ export default function EqualizerWindow({ isMuffled, onToggleMuffle }) {
         </div>
       </div>
 
-      {/* Bottom Reset Action */}
+      {/* Reset Action */}
       <div className="flex justify-end pt-1">
         <button
           onClick={handleReset}
           className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-mono flex items-center gap-1.5 transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Rack DSP</span>
+          <span>Reset Master DSP</span>
         </button>
       </div>
     </div>
