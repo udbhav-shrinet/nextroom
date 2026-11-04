@@ -1,62 +1,86 @@
 import React, { useState } from 'react';
-import { Palette, Image, Sliders, Check } from 'lucide-react';
+import { Palette, Image, Sliders, Check, Sparkles, Link } from 'lucide-react';
 import { THEMES } from '../constants/themes';
 import { SCENES } from '../constants/scenes';
+
+const LOFI_PRESET_WALLPAPERS = [
+  {
+    name: 'Cozy Rain Bedroom (Lo-Fi Girl)',
+    url: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1920&auto=format&fit=crop'
+  },
+  {
+    name: 'Midnight Shibuya Rain',
+    url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=1920&auto=format&fit=crop'
+  },
+  {
+    name: 'Warm A-Frame Wood Hearth',
+    url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=1920&auto=format&fit=crop'
+  },
+  {
+    name: 'Kyoto Bamboo Mist Garden',
+    url: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=1920&auto=format&fit=crop'
+  },
+  {
+    name: 'Vintage 80s Cassette Horizon',
+    url: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1920&auto=format&fit=crop'
+  }
+];
 
 export default function ThemesWindow({
   currentTheme,
   onSelectTheme,
   currentScene,
-  onSelectScene
+  onSelectScene,
+  customWallpaperUrl,
+  setCustomWallpaperUrl
 }) {
-  const [activeTab, setActiveTab] = useState('themes'); // 'themes' | 'scenes' | 'builder'
-  const [customTheme, setCustomTheme] = useState({
-    id: 'custom',
-    name: 'Custom Studio',
-    bg: '#120a16',
-    panel: 'rgba(26, 15, 32, 0.85)',
-    accent: '#c084fc',
-    text: '#f3e8ff',
-    border: 'rgba(192, 132, 252, 0.25)'
-  });
+  const [activeTab, setActiveTab] = useState('themes'); // 'themes' | 'scenes' | 'wallpapers'
+  const [customInput, setCustomInput] = useState('');
+
+  const handleApplyCustomUrl = (e) => {
+    e.preventDefault();
+    if (!customInput.trim()) return;
+    setCustomWallpaperUrl(customInput.trim());
+    setCustomInput('');
+  };
 
   return (
     <div className="flex flex-col h-full gap-4">
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-2.5">
+      <div className="flex items-center gap-2 border-b border-white/10 pb-2.5 flex-wrap">
         <button
           onClick={() => setActiveTab('themes')}
-          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all ${
+          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
             activeTab === 'themes'
               ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm'
               : 'text-neutral-400 hover:text-white bg-white/5 border border-white/5'
           }`}
         >
-          24 Curated Themes
+          Themes (Syncs Wallpaper & FX)
         </button>
         <button
           onClick={() => setActiveTab('scenes')}
-          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all ${
+          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
             activeTab === 'scenes'
               ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm'
               : 'text-neutral-400 hover:text-white bg-white/5 border border-white/5'
           }`}
         >
-          Living Room Scenery
+          Scenery Art
         </button>
         <button
-          onClick={() => setActiveTab('builder')}
-          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all ${
-            activeTab === 'builder'
+          onClick={() => setActiveTab('wallpapers')}
+          className={`px-3 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer ${
+            activeTab === 'wallpapers'
               ? 'bg-purple-600/30 text-purple-200 border border-purple-500/40 shadow-sm'
               : 'text-neutral-400 hover:text-white bg-white/5 border border-white/5'
           }`}
         >
-          Theme Builder
+          Lo-Fi Wallpapers
         </button>
       </div>
 
-      {/* 1. Curated Themes Grid */}
+      {/* 1. Curated Themes Grid (Synchronizes Theme, Wallpaper & Room Animation) */}
       {activeTab === 'themes' && (
         <div className="grid grid-cols-2 gap-2.5 flex-1 overflow-y-auto pr-1 custom-scrollbar">
           {THEMES.map(theme => {
@@ -84,7 +108,7 @@ export default function ThemesWindow({
                   <span className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: theme.muted }} />
                   <span className="w-4 h-4 rounded-full border border-black/20" style={{ backgroundColor: theme.secondary }} />
                   <span className="text-[10px] font-mono ml-auto opacity-75" style={{ color: theme.text }}>
-                    {theme.category}
+                    {theme.animation} fx
                   </span>
                 </div>
               </div>
@@ -97,11 +121,14 @@ export default function ThemesWindow({
       {activeTab === 'scenes' && (
         <div className="grid grid-cols-2 gap-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
           {SCENES.map(scene => {
-            const isSelected = currentScene.id === scene.id;
+            const isSelected = currentScene.id === scene.id && !customWallpaperUrl;
             return (
               <div
                 key={scene.id}
-                onClick={() => onSelectScene(scene)}
+                onClick={() => {
+                  setCustomWallpaperUrl(null);
+                  onSelectScene(scene);
+                }}
                 className={`p-3 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between relative overflow-hidden h-28 ${
                   isSelected
                     ? 'border-purple-400 shadow-lg shadow-purple-500/20'
@@ -127,39 +154,55 @@ export default function ThemesWindow({
         </div>
       )}
 
-      {/* 3. Custom Theme Builder */}
-      {activeTab === 'builder' && (
-        <div className="flex flex-col gap-3 p-2">
-          <div className="text-xs text-neutral-300">Create your bespoke sanctuary palette:</div>
+      {/* 3. Lo-Fi Wallpapers & Custom URL */}
+      {activeTab === 'wallpapers' && (
+        <div className="flex flex-col gap-4 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+          {/* Custom URL form */}
+          <form onSubmit={handleApplyCustomUrl} className="flex gap-2">
+            <input
+              type="url"
+              placeholder="Paste any wallpaper image/GIF/video URL..."
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-400"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs transition-colors cursor-pointer"
+            >
+              Apply
+            </button>
+            {customWallpaperUrl && (
+              <button
+                type="button"
+                onClick={() => setCustomWallpaperUrl(null)}
+                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 text-xs font-mono cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+          </form>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 text-xs font-mono">
-              <span>Background Color:</span>
-              <input
-                type="color"
-                value={customTheme.bg}
-                onChange={(e) => setCustomTheme({ ...customTheme, bg: e.target.value })}
-                className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/10"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-xs font-mono">
-              <span>Accent Glow Color:</span>
-              <input
-                type="color"
-                value={customTheme.accent}
-                onChange={(e) => setCustomTheme({ ...customTheme, accent: e.target.value })}
-                className="w-full h-8 rounded-lg cursor-pointer bg-transparent border border-white/10"
-              />
-            </label>
+          {/* Curated Presets */}
+          <div className="space-y-2">
+            <div className="text-xs font-mono text-neutral-300">Curated Lo-Fi Sanctuary Backdrops:</div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {LOFI_PRESET_WALLPAPERS.map((wp, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setCustomWallpaperUrl(wp.url)}
+                  className={`relative rounded-xl overflow-hidden aspect-video border cursor-pointer group ${
+                    customWallpaperUrl === wp.url ? 'border-purple-400 ring-2 ring-purple-400/50' : 'border-white/10 hover:border-white/30'
+                  }`}
+                >
+                  <img src={wp.url} alt={wp.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2">
+                    <span className="text-[11px] font-medium text-white truncate drop-shadow">{wp.name}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-
-          <button
-            onClick={() => onSelectTheme(customTheme)}
-            className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs transition-colors shadow-lg shadow-purple-600/30 mt-4"
-          >
-            Apply Custom Theme
-          </button>
         </div>
       )}
     </div>

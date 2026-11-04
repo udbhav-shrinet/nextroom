@@ -10,7 +10,7 @@ export const SCENES = [
     cityTints: ['#7c3aed', '#ec4899', '#3b82f6'],
     elements: { skyline: true, rain: true, deskProps: true, plant: true, cat: true, blinds: true },
     description: 'High-rise desk overlooking neon Shinjuku rain and damp pavement reflection.',
-    defaultMix: { rain: 0.65, cafe: 0.15, keyboard: 0.35, loFiKick: 0.2 }
+    defaultMix: {}
   },
   {
     id: 'cyberpunk-rooftop',
@@ -23,7 +23,7 @@ export const SCENES = [
     cityTints: ['#00f0ff', '#ffe600', '#f43f5e'],
     elements: { skyline: true, rain: true, deskProps: true, neonHologram: true },
     description: 'Upper floor aerie surrounded by holographic billboards and air-traffic corridors.',
-    defaultMix: { scanner: 0.35, rain: 0.45, fanHum: 0.3, synthwave: 0.25 }
+    defaultMix: {}
   },
   {
     id: 'paris-cafe',
@@ -36,7 +36,7 @@ export const SCENES = [
     cityTints: ['#d97706', '#92400e', '#fef3c7'],
     elements: { cafeWindow: true, rain: true, coffeeSteam: true, warmLamp: true },
     description: 'Corner bistro table watching wet Parisian cobblestones and umbrella strolls.',
-    defaultMix: { cafe: 0.6, rain: 0.5, kettle: 0.2, accordion: 0.15 }
+    defaultMix: {}
   },
   {
     id: 'nordic-cabin',
@@ -49,7 +49,7 @@ export const SCENES = [
     cityTints: ['#ea580c', '#c2410c'],
     elements: { fireplace: true, pines: true, snow: true, woodenBeams: true, cat: true },
     description: 'Spruce timber loft with crackling pinewood embers and falling mountain powder.',
-    defaultMix: { fireplace: 0.7, blizzard: 0.35, wind: 0.25, catPurr: 0.4 }
+    defaultMix: {}
   },
   {
     id: 'kyoto-shrine',
@@ -62,7 +62,7 @@ export const SCENES = [
     cityTints: ['#4ade80', '#22c55e', '#a7f3d0'],
     elements: { bamboo: true, gentleRain: true, teaSet: true, stoneLantern: true },
     description: 'Veranda overlooking whispering bamboo stalks and morning mountain mist.',
-    defaultMix: { rainLeaves: 0.55, forestCreek: 0.4, windChimes: 0.35, singingBowl: 0.3 }
+    defaultMix: {}
   },
   {
     id: 'swiss-train',
@@ -75,7 +75,7 @@ export const SCENES = [
     cityTints: ['#38bdf8', '#e2e8f0'],
     elements: { trainWindow: true, mountainPass: true, motionBlur: true, teaMug: true },
     description: 'Smooth rhythmic rail travel winding through snow-capped Alpine crags.',
-    defaultMix: { sleeperTrain: 0.65, wind: 0.2, teaSip: 0.15, alphaWave: 0.25 }
+    defaultMix: {}
   },
   {
     id: 'orbital-cupola',
@@ -88,7 +88,7 @@ export const SCENES = [
     cityTints: ['#00f0ff', '#60a5fa', '#ffffff'],
     elements: { earthCurvature: true, stars: true, spaceStationInterior: true, aurora: true },
     description: 'Pressurized dome viewing Earth horizon glow, shimmering auroras, and deep cosmos.',
-    defaultMix: { spaceshipDrone: 0.5, nasaTelemetry: 0.35, thetaWave: 0.4, brownNoise: 0.2 }
+    defaultMix: {}
   },
   {
     id: 'deep-sea-biolume',
@@ -101,7 +101,7 @@ export const SCENES = [
     cityTints: ['#06d6a0', '#118ab2', '#ffd166'],
     elements: { underwaterWindow: true, jellyfishDrift: true, waterRefraction: true },
     description: 'Submerged oceanic habitat surrounded by glowing siphonophores and ocean currents.',
-    defaultMix: { underwaterHum: 0.6, whaleSong: 0.35, oceanWaves: 0.3, pinkNoise: 0.25 }
+    defaultMix: {}
   },
   {
     id: 'synthwave-grid',
@@ -114,7 +114,7 @@ export const SCENES = [
     cityTints: ['#ff007f', '#00f0ff', '#ffe600'],
     elements: { gridFloor: true, retroSun: true, crtLines: true },
     description: 'Digital wireframe canyon running toward an endless 80s wire-frame sunset.',
-    defaultMix: { gammaWave: 0.35, synthwavePad: 0.5, tapeHiss: 0.25 }
+    defaultMix: {}
   },
   {
     id: 'treehouse-study',
@@ -127,7 +127,7 @@ export const SCENES = [
     cityTints: ['#ca8a04', '#15803d'],
     elements: { foliage: true, lantern: true, bookStacks: true, fireflies: true },
     description: 'Canopy hideaway packed with aged folios, hanging glowing lanterns, and fireflies.',
-    defaultMix: { forestCreek: 0.45, crickets: 0.35, pageTurn: 0.3, windChimes: 0.25 }
+    defaultMix: {}
   },
   {
     id: 'library-storm',
@@ -140,7 +140,7 @@ export const SCENES = [
     cityTints: ['#8b5cf6', '#6366f1'],
     elements: { bookshelves: true, archedWindow: true, lightning: true, deskLamp: true },
     description: 'Vaulted mahogany library reading nook lit by desk lamps and lightning strikes.',
-    defaultMix: { thunder: 0.5, rain: 0.6, grandfatherClock: 0.3, pageTurn: 0.25 }
+    defaultMix: {}
   },
   {
     id: 'kerala-backwaters',
@@ -153,7 +153,7 @@ export const SCENES = [
     cityTints: ['#10b981', '#059669'],
     elements: { palmLeaves: true, heavyMonsoon: true, woodenProw: true, riverRipple: true },
     description: 'Slow wooden houseboat cruising palm canals under torrential tropical rain.',
-    defaultMix: { tinRoofRain: 0.75, thunder: 0.4, riverRapids: 0.35, tanpura: 0.2 }
+    defaultMix: {}
   },
   {
     id: 'seoul-alley',
@@ -166,7 +166,7 @@ export const SCENES = [
     cityTints: ['#ec4899', '#8b5cf6', '#06b6d4'],
     elements: { skyline: true, rain: true, deskProps: true },
     description: 'Hongdae back-alley apartment watching neon signs reflect in fresh puddles.',
-    defaultMix: { rain: 0.7, cafe: 0.25, subwayRumble: 0.2 }
+    defaultMix: {}
   },
   {
     id: 'himalayan-dawn',
@@ -179,7 +179,7 @@ export const SCENES = [
     cityTints: ['#f97316', '#fbbf24'],
     elements: { prayerFlags: true, mountainPass: true, mist: true },
     description: 'High-altitude stone cloister looking across rising sun over snowy Himalayan ridges.',
-    defaultMix: { singingBowl: 0.5, wind: 0.4, solfeggio432: 0.35 }
+    defaultMix: {}
   },
   {
     id: 'mars-outpost',
@@ -192,7 +192,7 @@ export const SCENES = [
     cityTints: ['#ea580c', '#c2410c'],
     elements: { redSoil: true, stars: true, domeStructure: true },
     description: 'Sealed pressurized greenhouse looking out over rust-red basalt plains.',
-    defaultMix: { spaceshipDrone: 0.45, fanHum: 0.3, brownNoise: 0.25 }
+    defaultMix: {}
   },
   {
     id: 'greenhouse-conservatory',
@@ -205,6 +205,6 @@ export const SCENES = [
     cityTints: ['#22c55e', '#16a34a', '#86efac'],
     elements: { foliage: true, glassCeiling: true, rain: true, teaSet: true },
     description: 'Towering iron-ribbed glasshouse dense with tropical ferns and soft skylight rain.',
-    defaultMix: { rainLeaves: 0.6, kettle: 0.3, pageTurn: 0.25 }
+    defaultMix: {}
   }
 ];

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Volume2, Sparkles, Moon, Sun, CloudRain } from 'lucide-react';
+import { Volume2, Sparkles, Moon, Sun, CloudRain, Image as ImageIcon } from 'lucide-react';
 import { audioEngine } from '../audio/audioEngine';
 
 // Kelvin to RGB conversion for physical warmth
@@ -21,7 +21,7 @@ function kelvinToRgb(kelvin) {
     blue = 255;
   }
 
-  return `rgb(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)})`;
+  return `rgb(${Math.round(red)}, ${Math.round(blue)})`;
 }
 
 export default function RoomCanvas({
@@ -30,7 +30,10 @@ export default function RoomCanvas({
   setLighting,
   stickyNotes,
   setStickyNotes,
-  onOpenNotes
+  onOpenNotes,
+  isMuffled,
+  customWallpaperUrl,
+  onOpenThemes
 }) {
   const rainCanvasRef = useRef(null);
   const [catPurring, setCatPurring] = useState(false);
@@ -51,7 +54,6 @@ export default function RoomCanvas({
     resize();
     window.addEventListener('resize', resize);
 
-    // Raindrops particles
     const drops = [];
     const count = Math.floor(lighting.rainDensity * 120);
 
@@ -79,7 +81,6 @@ export default function RoomCanvas({
           ctx.lineTo(d.x - 1, d.y + d.len);
           ctx.stroke();
 
-          // Droplet head bead
           ctx.beginPath();
           ctx.arc(d.x, d.y + d.len, d.radius, 0, Math.PI * 2);
           ctx.fill();
@@ -109,18 +110,23 @@ export default function RoomCanvas({
 
   const handleCatClick = () => {
     setCatPurring(true);
-    audioEngine.playPad(0);
-    setTimeout(() => setCatPurring(false), 3000);
+    setTimeout(() => setCatPurring(false), 2500);
   };
 
   const handleKettleClick = () => {
     setSteamPuff(true);
-    audioEngine.playPad(7);
     setTimeout(() => setSteamPuff(false), 2500);
   };
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-auto select-none" style={{ background: scene.bgGradient }}>
+    <div
+      className={`absolute inset-0 overflow-hidden pointer-events-auto select-none transition-all duration-700 ${
+        isMuffled ? 'brightness-75 contrast-90' : ''
+      }`}
+      style={{
+        background: customWallpaperUrl ? `url(${customWallpaperUrl}) center/cover no-repeat` : scene.bgGradient
+      }}
+    >
       {/* Cityscape / Room Background Art Layer */}
       <div className="absolute inset-0 pointer-events-none transition-all duration-1000 ease-in-out opacity-85">
         {/* Sky glow & Horizon */}
@@ -132,7 +138,7 @@ export default function RoomCanvas({
         />
 
         {/* Procedural High-rise Skyline Silhouette */}
-        {scene.elements?.skyline && (
+        {scene.elements?.skyline && !customWallpaperUrl && (
           <div className="absolute inset-x-0 bottom-24 h-64 flex items-end justify-around px-4 opacity-75">
             <div className="w-16 h-48 bg-gray-950/80 border-t border-purple-500/20 shadow-2xl relative">
               <div className="absolute top-2 left-2 right-2 flex flex-wrap gap-1">
@@ -161,7 +167,7 @@ export default function RoomCanvas({
         )}
 
         {/* Alpine Pine Trees or Forest Silhouette */}
-        {scene.elements?.pines && (
+        {scene.elements?.pines && !customWallpaperUrl && (
           <div className="absolute inset-x-0 bottom-20 h-48 flex items-end justify-between px-8 opacity-60">
             {[...Array(14)].map((_, i) => (
               <div
@@ -176,7 +182,6 @@ export default function RoomCanvas({
 
       {/* Architectural Window Blinds & Frame */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Blinds Slats */}
         {blindsClosed && (
           <div className="absolute inset-x-0 top-0 bottom-24 bg-black/75 flex flex-col justify-between py-2 transition-all duration-700">
             {[...Array(30)].map((_, i) => (
@@ -204,6 +209,16 @@ export default function RoomCanvas({
           className="absolute inset-0 pointer-events-none backdrop-blur-md transition-opacity duration-500 z-10"
           style={{ backgroundColor: `rgba(255, 255, 255, ${lighting.fogDensity * 0.25})` }}
         />
+      )}
+
+      {/* Next Room Spatial Door Hallway Muffle Overlay */}
+      {isMuffled && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-none z-15 transition-all duration-500 flex items-center justify-center">
+          <div className="px-4 py-2 rounded-2xl bg-black/60 border border-amber-500/40 text-amber-300 font-mono text-xs flex items-center gap-2 shadow-2xl">
+            <span className="dot-pill active !bg-amber-400 !shadow-amber-400 animate-pulse" />
+            <span>BEHIND CLOSED DOOR // 380Hz LPF FILTER ACTIVE</span>
+          </div>
+        </div>
       )}
 
       {/* Physical Room Lighting: Warm Desk Lamp Light Pool */}
@@ -269,7 +284,7 @@ export default function RoomCanvas({
             }}
           >
             <button
-              className="absolute top-1 right-1 text-black/50 hover:text-black opacity-0 group-hover:opacity-100 font-bold px-1"
+              className="absolute top-1 right-1 text-black/50 hover:text-black opacity-0 group-hover:opacity-100 font-bold px-1 cursor-pointer"
               onClick={() => setStickyNotes(stickyNotes.filter(n => n.id !== note.id))}
             >
               ×
@@ -284,7 +299,6 @@ export default function RoomCanvas({
       <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-neutral-950 via-neutral-950/90 to-transparent pointer-events-auto z-20 flex items-end justify-between px-16 pb-20">
         {/* Left Side: Warm Desk Lamp & Sleeping Cat */}
         <div className="flex items-end gap-8">
-          {/* Desk Lamp Prop */}
           <div
             className="cursor-pointer group flex flex-col items-center"
             onClick={() => setLighting({ ...lighting, lampActive: !lighting.lampActive })}
@@ -304,7 +318,6 @@ export default function RoomCanvas({
             </span>
           </div>
 
-          {/* Sleeping Cat Prop */}
           <div
             className="cursor-pointer relative group flex flex-col items-center"
             onClick={handleCatClick}
@@ -323,7 +336,6 @@ export default function RoomCanvas({
             </span>
           </div>
 
-          {/* Steaming Coffee / Tea Cup */}
           <div
             className="cursor-pointer relative group flex flex-col items-center"
             onClick={handleKettleClick}
@@ -343,11 +355,20 @@ export default function RoomCanvas({
           </div>
         </div>
 
-        {/* Right Side: Window Blinds Pull & Quick Wall Note */}
-        <div className="flex items-end gap-6">
+        {/* Right Side: Quick Wallpaper Swap, Window Blinds Pull & Sticky Note */}
+        <div className="flex items-end gap-4">
+          <button
+            onClick={onOpenThemes}
+            className="px-3 py-1.5 rounded-md bg-neutral-900/80 border border-neutral-700 text-xs text-neutral-300 hover:text-white hover:border-neutral-500 transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
+            title="Switch Lo-Fi Wallpaper / Scenery"
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-purple-400" />
+            <span>Wallpaper</span>
+          </button>
+
           <button
             onClick={() => setBlindsClosed(!blindsClosed)}
-            className="px-3 py-1.5 rounded-md bg-neutral-900/80 border border-neutral-700 text-xs text-neutral-300 hover:text-white hover:border-neutral-500 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-md bg-neutral-900/80 border border-neutral-700 text-xs text-neutral-300 hover:text-white hover:border-neutral-500 transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
             title="Toggle Window Blinds"
           >
             {blindsClosed ? 'Open Blinds' : 'Close Blinds'}
@@ -355,7 +376,7 @@ export default function RoomCanvas({
 
           <button
             onClick={onOpenNotes}
-            className="px-3 py-1.5 rounded-md bg-neutral-900/80 border border-neutral-700 text-xs text-neutral-300 hover:text-white hover:border-neutral-500 transition-colors flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-md bg-neutral-900/80 border border-neutral-700 text-xs text-neutral-300 hover:text-white hover:border-neutral-500 transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
             title="Add sticky note to wall"
           >
             + Sticky Note

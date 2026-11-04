@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
   Radio, Sliders, AudioWaveform, Sun, CheckSquare,
-  Grid, MessageSquare, Palette
+  Grid, MessageSquare, Palette, Sparkles, PlaySquare
 } from 'lucide-react';
-
+import { audioEngine } from './audio/audioEngine';
 import { THEMES } from './constants/themes';
 import { SCENES } from './constants/scenes';
 import { FLAGSHIP_STATIONS } from './constants/flagshipStations';
-import { audioEngine } from './audio/audioEngine';
 
+import BootOverlay from './components/BootOverlay';
+import HudBar from './components/HudBar';
 import RoomCanvas from './components/RoomCanvas';
 import Dock from './components/Dock';
 import { WindowFrame } from './components/WindowManager';
@@ -20,15 +21,15 @@ import ProductivityWindow from './components/ProductivityWindow';
 import SamplerWindow from './components/SamplerWindow';
 import LoungeWindow from './components/LoungeWindow';
 import ThemesWindow from './components/ThemesWindow';
+import YouTubeWindow from './components/YouTubeWindow';
 import CommandBar from './components/CommandBar';
-import HudBar from './components/HudBar';
-import BootOverlay from './components/BootOverlay';
 
 export default function App() {
-  const [isBooted, setIsBooted] = useState(() => {
-    return false; // Always require unlock gesture once per session to satisfy audio policy
-  });
+  const [isBooted, setIsBooted] = useState(false);
+  const [zenMode, setZenMode] = useState(false);
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
 
+  // Active theme, scene, and custom wallpaper
   const [currentTheme, setCurrentTheme] = useState(() => {
     try {
       const saved = localStorage.getItem('nr_theme');
@@ -47,13 +48,20 @@ export default function App() {
     }
   });
 
+  const [customWallpaperUrl, setCustomWallpaperUrl] = useState(() => {
+    try {
+      return localStorage.getItem('nr_custom_wallpaper') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Radio & Audio states — default OFF / silent on boot
   const [currentStation, setCurrentStation] = useState(FLAGSHIP_STATIONS[0]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuffled, setIsMuffled] = useState(false);
-  const [zenMode, setZenMode] = useState(false);
-  const [commandBarOpen, setCommandBarOpen] = useState(false);
 
-  // Lighting state
+  // Physical room lighting & atmospheric optics
   const [lighting, setLighting] = useState(() => {
     try {
       const saved = localStorage.getItem('nr_lighting');
@@ -61,32 +69,25 @@ export default function App() {
         lampActive: true,
         lampDimmer: 0.85,
         lampWarmth: 3200,
-        lampX: 28,
-        lampY: 62,
+        lampX: 25,
+        lampY: 65,
         midnightDimmer: 0,
-        rainDensity: 0.45,
+        rainDensity: 0.65,
         fogDensity: 0,
-        fireplaceActive: false,
         neonActive: true,
-        neonText: 'NEXTROOM // 24/7 SANCTUARY',
         neonColor: '#c084fc',
-        crtEffect: false
+        neonText: 'NEXTROOM // 24/7 SANCTUARY',
+        fireplaceActive: false,
+        crtEffect: false,
+        scanlineIntensity: 0.3
       };
     } catch {
       return {
         lampActive: true,
         lampDimmer: 0.85,
         lampWarmth: 3200,
-        lampX: 28,
-        lampY: 62,
-        midnightDimmer: 0,
-        rainDensity: 0.45,
-        fogDensity: 0,
-        fireplaceActive: false,
-        neonActive: true,
-        neonText: 'NEXTROOM // 24/7 SANCTUARY',
-        neonColor: '#c084fc',
-        crtEffect: false
+        rainDensity: 0.65,
+        neonActive: true
       };
     }
   });
@@ -96,8 +97,8 @@ export default function App() {
     try {
       const saved = localStorage.getItem('nr_sticky_notes');
       return saved ? JSON.parse(saved) : [
-        { id: 1, title: 'Studio Focus', content: 'Explore 40,000+ stations worldwide\nDoor Muffle: 380Hz LPF', color: '#fef08a', rotation: -2 },
-        { id: 2, title: 'Deep Work Intent', content: 'NextRoom OS — offline synth ready\nTouch props for tactile audio', color: '#bae6fd', rotation: 3 }
+        { id: 1, title: 'Studio Focus', content: 'Explore 40,000+ stations worldwide\nDoor Muffle: 380Hz LPF\nCustom YouTube audio ready', color: '#fef08a', rotation: -2 },
+        { id: 2, title: 'Deep Work Intent', content: 'NextRoom OS — clean offline synth ready\nTouch props for tactile audio', color: '#bae6fd', rotation: 3 }
       ];
     } catch {
       return [];
@@ -110,6 +111,7 @@ export default function App() {
 
   // Window states & z-index
   const [openWindows, setOpenWindows] = useState({
+    youtube: false,
     radio: false,
     equalizer: false,
     mixer: false,
@@ -119,7 +121,9 @@ export default function App() {
     lounge: false,
     themes: false
   });
+
   const [windowZIndices, setWindowZIndices] = useState({
+    youtube: 29,
     radio: 30,
     equalizer: 31,
     mixer: 32,
@@ -145,7 +149,7 @@ export default function App() {
     try { localStorage.setItem('nr_theme', JSON.stringify(currentTheme)); } catch {}
   }, [currentTheme]);
 
-  // Persist lighting and scene
+  // Persist settings
   useEffect(() => {
     try { localStorage.setItem('nr_lighting', JSON.stringify(lighting)); } catch {}
   }, [lighting]);
@@ -153,6 +157,16 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('nr_scene', JSON.stringify(currentScene)); } catch {}
   }, [currentScene]);
+
+  useEffect(() => {
+    try {
+      if (customWallpaperUrl) {
+        localStorage.setItem('nr_custom_wallpaper', customWallpaperUrl);
+      } else {
+        localStorage.removeItem('nr_custom_wallpaper');
+      }
+    } catch {}
+  }, [customWallpaperUrl]);
 
   useEffect(() => {
     try { localStorage.setItem('nr_sticky_notes', JSON.stringify(stickyNotes)); } catch {}
@@ -176,7 +190,7 @@ export default function App() {
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (['input', 'textarea'].includes(e.target.tagName.toLowerCase())) return;
+      if (['input', 'textarea'].includes(e.target.tagName?.toLowerCase())) return;
 
       if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault();
@@ -195,9 +209,9 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Boot unlock: absolute silence! No auto-playing sound.
   const handleTuneIn = () => {
     setIsBooted(true);
-    audioEngine.playStation(currentStation);
   };
 
   const handleSelectStation = (station) => {
@@ -222,42 +236,73 @@ export default function App() {
   };
 
   const handleToggleMuffle = () => {
-    audioEngine.toggleDoorMuffle(!audioEngine.isMuffled);
+    audioEngine.toggleDoorMuffle(!isMuffled);
   };
 
-  const toggleWindow = (id) => {
-    setOpenWindows(prev => {
-      const nextOpen = !prev[id];
-      if (nextOpen) bringToFront(id);
-      return { ...prev, [id]: nextOpen };
+  // Silence everything immediately
+  const handleSilenceAll = () => {
+    audioEngine.emergencySilenceAll();
+    setIsPlaying(false);
+  };
+
+  // Theme selection: automatically syncs matching wallpaper scene, lamp warmth, and animation!
+  const handleSelectTheme = (theme) => {
+    setCurrentTheme(theme);
+    if (theme.linkedScene) {
+      const found = SCENES.find(s => s.id === theme.linkedScene);
+      if (found) {
+        setCurrentScene(found);
+        setCustomWallpaperUrl(null);
+      }
+    }
+    setLighting(prev => ({
+      ...prev,
+      lampWarmth: theme.lampWarmth || prev.lampWarmth,
+      crtEffect: theme.animation === 'crt',
+      fireplaceActive: theme.animation === 'fireplace'
+    }));
+  };
+
+  const bringToFront = (windowId) => {
+    setWindowZIndices(prev => {
+      const maxZ = Math.max(...Object.values(prev));
+      return { ...prev, [windowId]: maxZ + 1 };
     });
   };
 
-  const bringToFront = (id) => {
-    setWindowZIndices(prev => {
-      const highest = Math.max(...Object.values(prev), 30);
-      return { ...prev, [id]: highest + 1 };
+  const toggleWindow = (windowId) => {
+    setOpenWindows(prev => {
+      const nextState = !prev[windowId];
+      if (nextState) bringToFront(windowId);
+      return { ...prev, [windowId]: nextState };
     });
   };
 
   const handleApplyVibe = (vibe) => {
-    if (vibe.station) handleSelectStation(vibe.station);
-    if (vibe.themeId) {
-      const t = THEMES.find(th => th.id === vibe.themeId);
-      if (t) setCurrentTheme(t);
+    if (vibe.theme) {
+      const t = THEMES.find(item => item.name === vibe.theme);
+      if (t) handleSelectTheme(t);
     }
-    if (vibe.sceneId) {
-      const sc = SCENES.find(s => s.id === vibe.sceneId);
-      if (sc) setCurrentScene(sc);
+    if (vibe.scene) {
+      const s = SCENES.find(item => item.name === vibe.scene);
+      if (s) {
+        setCurrentScene(s);
+        setCustomWallpaperUrl(null);
+      }
+    }
+    if (vibe.station) {
+      handleSelectStation(vibe.station);
     }
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-black font-sans">
-      {/* 1. Boot Gate Screen */}
-      {!isBooted && <BootOverlay onUnlock={handleTuneIn} />}
+    <div className="relative w-screen h-screen overflow-hidden select-none bg-black font-sans text-neutral-100">
+      {/* 1. Terminal Boot Overlay */}
+      {!isBooted && (
+        <BootOverlay onUnlock={handleTuneIn} />
+      )}
 
-      {/* 2. 95% Viewport Living Room Layer */}
+      {/* 2. Living Room OS Canvas */}
       <RoomCanvas
         scene={currentScene}
         lighting={lighting}
@@ -265,19 +310,40 @@ export default function App() {
         stickyNotes={stickyNotes}
         setStickyNotes={setStickyNotes}
         onOpenNotes={() => toggleWindow('productivity')}
+        isMuffled={isMuffled}
+        customWallpaperUrl={customWallpaperUrl}
+        onOpenThemes={() => toggleWindow('themes')}
       />
 
-      {/* 3. Top Productivity HUD Bar */}
+      {/* 3. Top Master Productivity & Network Telemetry HUD Bar */}
       <HudBar
         pomoStats={pomoStats}
         activeLockedTask={activeLockedTask}
-        onUnlockTask={() => setActiveLockedTask(null)}
         zenMode={zenMode}
-        setZenMode={setZenMode}
-        onOpenProductivity={() => toggleWindow('productivity')}
+        onSilenceAll={handleSilenceAll}
       />
 
       {/* 4. Draggable Floating Translucent Windows */}
+
+      {/* Window: YouTube Custom Search & Audio Player */}
+      <WindowFrame
+        id="youtube"
+        title="YOUTUBE AUDIO // SEARCH & CUSTOM STREAM"
+        icon={PlaySquare}
+        isOpen={openWindows.youtube}
+        onClose={() => toggleWindow('youtube')}
+        initialPos={{ x: 140, y: 80, w: 520, h: 480 }}
+        zIndex={windowZIndices.youtube}
+        onFocus={() => bringToFront('youtube')}
+      >
+        <YouTubeWindow
+          onTrackPlaying={(title) => {
+            setCurrentStation({ name: title, genre: 'YouTube Custom' });
+            setIsPlaying(true);
+          }}
+        />
+      </WindowFrame>
+
       {/* Window: Radio */}
       <WindowFrame
         id="radio"
@@ -381,7 +447,7 @@ export default function App() {
       {/* Window: Lounge */}
       <WindowFrame
         id="lounge"
-        title="SYNCHRONIZED STATION LOUNGE & VIBE SHARE"
+        title="SYNCHRONIZED STATION LOUNGE & MESH CHAT"
         icon={MessageSquare}
         isOpen={openWindows.lounge}
         onClose={() => toggleWindow('lounge')}
@@ -397,10 +463,10 @@ export default function App() {
         />
       </WindowFrame>
 
-      {/* Window: Themes */}
+      {/* Window: Themes & Wallpapers */}
       <WindowFrame
         id="themes"
-        title="24 CURATED THEMES & SCENERY ENGINE"
+        title="24 CURATED THEMES & LO-FI WALLPAPERS"
         icon={Palette}
         isOpen={openWindows.themes}
         onClose={() => toggleWindow('themes')}
@@ -410,9 +476,11 @@ export default function App() {
       >
         <ThemesWindow
           currentTheme={currentTheme}
-          onSelectTheme={setCurrentTheme}
+          onSelectTheme={handleSelectTheme}
           currentScene={currentScene}
           onSelectScene={setCurrentScene}
+          customWallpaperUrl={customWallpaperUrl}
+          setCustomWallpaperUrl={setCustomWallpaperUrl}
         />
       </WindowFrame>
 
@@ -420,7 +488,7 @@ export default function App() {
       <CommandBar
         isOpen={commandBarOpen}
         onClose={() => setCommandBarOpen(false)}
-        onSelectTheme={setCurrentTheme}
+        onSelectTheme={handleSelectTheme}
         onSelectScene={setCurrentScene}
         onSelectStation={handleSelectStation}
         onToggleMuffle={handleToggleMuffle}
@@ -443,6 +511,7 @@ export default function App() {
         zenMode={zenMode}
         setZenMode={setZenMode}
         onOpenCommandBar={() => setCommandBarOpen(true)}
+        onSilenceAll={handleSilenceAll}
       />
     </div>
   );

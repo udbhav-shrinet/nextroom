@@ -353,15 +353,35 @@ class AudioEngine {
   // Door Muffle (Next Room) Effect
   toggleDoorMuffle(active) {
     this.isMuffled = active;
-    if (!this.ctx || !this.muffleFilter1) return;
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+      const now = this.ctx.currentTime;
+      const targetFreq = active ? 350 : 22000;
 
-    const targetFreq = active ? 380 : 22000;
-    this.muffleFilter1.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.15);
-    this.muffleFilter2.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.15);
+      if (this.muffleFilter1 && this.muffleFilter2) {
+        this.muffleFilter1.frequency.cancelScheduledValues(now);
+        this.muffleFilter2.frequency.cancelScheduledValues(now);
+        this.muffleFilter1.frequency.setValueAtTime(this.muffleFilter1.frequency.value, now);
+        this.muffleFilter2.frequency.setValueAtTime(this.muffleFilter2.frequency.value, now);
+        this.muffleFilter1.frequency.exponentialRampToValueAtTime(targetFreq, now + 0.1);
+        this.muffleFilter2.frequency.exponentialRampToValueAtTime(targetFreq, now + 0.1);
+      }
 
-    // Increase reverb send slightly when behind the door
-    const wet = active ? 0.45 : this.reverbWet;
-    this.reverbGain.gain.setTargetAtTime(wet, this.ctx.currentTime, 0.2);
+      if (this.reverbGain && this.dryGain) {
+        this.reverbGain.gain.cancelScheduledValues(now);
+        this.dryGain.gain.cancelScheduledValues(now);
+        this.reverbGain.gain.setValueAtTime(this.reverbGain.gain.value, now);
+        this.dryGain.gain.setValueAtTime(this.dryGain.gain.value, now);
+        this.reverbGain.gain.linearRampToValueAtTime(active ? 0.55 : this.reverbWet, now + 0.15);
+        this.dryGain.gain.linearRampToValueAtTime(active ? 0.45 : (1.0 - this.reverbWet * 0.4), now + 0.15);
+      }
+    }
+
+    if (this.directAudioEl) {
+      this.directAudioEl.volume = active ? this.volume * 0.35 : this.volume;
+    }
 
     this.notify('muffleChanged', active);
   }
@@ -464,6 +484,33 @@ class AudioEngine {
     const data = new Uint8Array(this.analyser.frequencyBinCount);
     this.analyser.getByteTimeDomainData(data);
     return data;
+  }
+
+
+  emergencySilenceAll() {
+    this.pause();
+    this.synthActive = false;
+    this.stopProceduralSynth();
+
+    // Zero and stop all active stem nodes
+    for (const [stemId, obj] of this.stemNodes.entries()) {
+      if (obj.gain && this.ctx) {
+        obj.gain.gain.setValueAtTime(0, this.ctx.currentTime);
+      }
+      this.stopStemSound(stemId);
+    }
+
+    if (this.radioAudioEl) {
+      this.radioAudioEl.pause();
+      this.radioAudioEl.currentTime = 0;
+    }
+    if (this.directAudioEl) {
+      this.directAudioEl.pause();
+      this.directAudioEl.currentTime = 0;
+    }
+
+    this.isPlaying = false;
+    this.notify('playState', { isPlaying: false });
   }
 
   // -------------------------------------------------------------

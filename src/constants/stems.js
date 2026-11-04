@@ -6,7 +6,7 @@ export const STEMS = [
     category: 'Weather',
     type: 'rain',
     icon: 'CloudRain',
-    defaultVol: 0.5,
+    defaultVol: 0,
     defaultPan: 0,
     tone: 3200,
     desc: 'Soft continuous raindrops against double-paned window glass.'
@@ -74,7 +74,7 @@ export const STEMS = [
     category: 'Fire & Earth',
     type: 'fire',
     icon: 'Flame',
-    defaultVol: 0.45,
+    defaultVol: 0,
     defaultPan: 0.3,
     tone: 2200,
     desc: 'Dry birch logs crackling with occasional sparks and deep warmth.'
@@ -109,7 +109,7 @@ export const STEMS = [
     category: 'Cozy Interiors',
     type: 'cafe',
     icon: 'Users',
-    defaultVol: 0.3,
+    defaultVol: 0,
     defaultPan: 0.4,
     tone: 2600,
     desc: 'Distant French conversation, espresso cups, and porcelain clink.'
@@ -142,7 +142,7 @@ export const STEMS = [
     category: 'Cozy Interiors',
     type: 'vinyl',
     icon: 'Disc',
-    defaultVol: 0.25,
+    defaultVol: 0,
     defaultPan: 0,
     tone: 4000,
     desc: 'Micro-scratches, warm groove friction, and stylus rumble.'
@@ -177,7 +177,7 @@ export const STEMS = [
     category: 'City & Machines',
     type: 'fan',
     icon: 'RotateCw',
-    defaultVol: 0.2,
+    defaultVol: 0,
     defaultPan: 0.5,
     tone: 450,
     desc: 'Steady warm air displacement from a metallic three-blade desk fan.'
@@ -280,7 +280,7 @@ export const STEMS = [
     category: 'ASMR & Brainwaves',
     type: 'keyboard',
     icon: 'Keyboard',
-    defaultVol: 0.35,
+    defaultVol: 0,
     defaultPan: 0,
     tone: 3200,
     desc: 'Heavy linear switches typing steady code blocks on a brass plate.'
@@ -291,7 +291,7 @@ export const STEMS = [
     category: 'ASMR & Brainwaves',
     type: 'cat_purr',
     icon: 'Heart',
-    defaultVol: 0.3,
+    defaultVol: 0,
     defaultPan: 0.6,
     tone: 280,
     desc: 'Warm, low-frequency 25Hz chest vibration from sleeping feline.'
@@ -315,7 +315,7 @@ export const STEMS = [
     category: 'ASMR & Brainwaves',
     type: 'binaural_alpha',
     icon: 'Headphones',
-    defaultVol: 0.25,
+    defaultVol: 0,
     defaultPan: 0,
     tone: 210,
     desc: '10Hz stereo frequency offset designed for relaxed deep concentration.'
@@ -348,7 +348,7 @@ export const STEMS = [
     category: 'ASMR & Brainwaves',
     type: 'solfeggio',
     icon: 'Music',
-    defaultVol: 0.2,
+    defaultVol: 0,
     defaultPan: 0,
     tone: 432,
     desc: 'Pure acoustic tuning frequency resonant with mathematical geometry.'
@@ -403,7 +403,7 @@ export const STEMS = [
     category: 'Textures',
     type: 'lofi_piano',
     icon: 'Music',
-    defaultVol: 0.35,
+    defaultVol: 0,
     defaultPan: 0,
     tone: 2800,
     desc: 'Soft upright piano dampened with felt cloth playing jazzy chords.'
