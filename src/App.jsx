@@ -220,7 +220,11 @@ export default function App() {
   };
 
   const handleTogglePlay = () => {
-    audioEngine.togglePlay();
+    if (!isPlaying && (!audioEngine.currentStation || (!audioEngine.radioAudioEl?.src && !audioEngine.directAudioEl?.src && !audioEngine.synthActive))) {
+      handleSelectStation(currentStation || FLAGSHIP_STATIONS[0]);
+    } else {
+      audioEngine.togglePlay();
+    }
   };
 
   const handlePrevStation = () => {
@@ -337,10 +341,12 @@ export default function App() {
         onFocus={() => bringToFront('youtube')}
       >
         <YouTubeWindow
-          onTrackPlaying={(title) => {
-            setCurrentStation({ name: title, genre: 'YouTube Custom' });
+          onPlayTrack={(track) => {
+            audioEngine.pause();
+            setCurrentStation({ name: track.title || 'YouTube Audio', genre: track.channel || 'YouTube Live', id: track.id });
             setIsPlaying(true);
           }}
+          isMuffled={isMuffled}
         />
       </WindowFrame>
 

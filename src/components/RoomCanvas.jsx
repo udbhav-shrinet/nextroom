@@ -110,12 +110,24 @@ export default function RoomCanvas({
 
   const handleCatClick = () => {
     setCatPurring(true);
-    setTimeout(() => setCatPurring(false), 2500);
+    audioEngine.init().then(() => {
+      audioEngine.setStemVolume('cat-purr', 0.6);
+      setTimeout(() => {
+        audioEngine.setStemVolume('cat-purr', 0);
+        setCatPurring(false);
+      }, 3000);
+    });
   };
 
   const handleKettleClick = () => {
     setSteamPuff(true);
-    setTimeout(() => setSteamPuff(false), 2500);
+    audioEngine.init().then(() => {
+      audioEngine.setStemVolume('boiling-kettle', 0.5);
+      setTimeout(() => {
+        audioEngine.setStemVolume('boiling-kettle', 0);
+        setSteamPuff(false);
+      }, 3000);
+    });
   };
 
   return (

@@ -1,4 +1,7 @@
 // Universal Audio Engine & Studio DSP Rack for NextRoom
+import { STEMS } from '../constants/stems';
+import { FLAGSHIP_STATIONS } from '../constants/flagshipStations';
+
 class AudioEngine {
   constructor() {
     this.ctx = null;
@@ -7,7 +10,7 @@ class AudioEngine {
     this.directAudioEl = null;
     this.isDirectMode = false;
     this.isPlaying = false;
-    this.currentStation = null;
+    this.currentStation = FLAGSHIP_STATIONS[0];
     this.volume = 0.8;
     this.muted = false;
 
@@ -193,6 +196,7 @@ class AudioEngine {
     this.setupAudioListeners();
     this.start8DLoop();
     this.connectWebSocketBridge();
+    this.initAllStems();
 
     this.notify('ready');
   }
@@ -203,6 +207,13 @@ class AudioEngine {
       this.synthActive = false;
       this.stopProceduralSynth();
       this.notify('playState', { isPlaying: true, isDirect: false });
+    });
+
+    this.radioAudioEl.addEventListener('pause', () => {
+      if (!this.isDirectMode && !this.synthActive) {
+        this.isPlaying = false;
+        this.notify('playState', { isPlaying: false, isDirect: false });
+      }
     });
 
     this.radioAudioEl.addEventListener('waiting', () => {
@@ -222,6 +233,13 @@ class AudioEngine {
       this.notify('playState', { isPlaying: true, isDirect: true });
     });
 
+    this.directAudioEl.addEventListener('pause', () => {
+      if (this.isDirectMode && !this.synthActive) {
+        this.isPlaying = false;
+        this.notify('playState', { isPlaying: false, isDirect: true });
+      }
+    });
+
     this.directAudioEl.addEventListener('error', () => {
       console.warn('Both stream elements failed. Launching procedural Lo-Fi synth fallback!');
       this.fallbackToProceduralSynth();
@@ -230,15 +248,25 @@ class AudioEngine {
 
   async playStation(station) {
     await this.init();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      try { await this.ctx.resume(); } catch {}
+    }
     this.currentStation = station;
     this.isDirectMode = false;
+    this.synthActive = false;
+    this.stopProceduralSynth();
+
+    // Immediately notify station change so UI updates station label
+    this.notify('stationChanged', station);
 
     // Reset direct audio
-    this.directAudioEl.pause();
-    this.directAudioEl.src = '';
+    if (this.directAudioEl) {
+      this.directAudioEl.pause();
+      this.directAudioEl.src = '';
+    }
 
     // Connect source node once
-    if (!this.radioSource && this.radioAudioEl) {
+    if (!this.radioSource && this.radioAudioEl && this.ctx) {
       try {
         this.radioSource = this.ctx.createMediaElementSource(this.radioAudioEl);
         this.radioSource.connect(this.eqBands[0]);
@@ -252,28 +280,33 @@ class AudioEngine {
       this.radioAudioEl.playbackRate = this.varispeed;
       await this.radioAudioEl.play();
       this.isPlaying = true;
-      this.synthActive = false;
-      this.notify('stationChanged', station);
+      this.notify('playState', { isPlaying: true, isDirect: false });
     } catch (err) {
-      console.warn('Direct play error:', err);
+      console.warn('Web Audio play failed (CORS or network), switching to direct stream fallback:', err);
       this.fallbackToDirectStream();
     }
   }
 
   fallbackToDirectStream() {
     if (!this.currentStation) return;
-    this.radioAudioEl.pause();
-    this.radioAudioEl.src = '';
+    if (this.radioAudioEl) {
+      this.radioAudioEl.pause();
+      this.radioAudioEl.src = '';
+    }
     this.isDirectMode = true;
+    this.synthActive = false;
+    this.stopProceduralSynth();
 
     try {
       this.directAudioEl.src = this.currentStation.url;
-      this.directAudioEl.volume = this.volume;
+      this.directAudioEl.volume = this.muted ? 0 : this.volume;
       this.directAudioEl.play().then(() => {
         this.isPlaying = true;
+        this.notify('playState', { isPlaying: true, isDirect: true });
+        this.notify('stationChanged', this.currentStation);
         this.notify('directMode', true);
       }).catch((e) => {
-        console.warn('Direct stream also blocked, starting synth:', e);
+        console.warn('Direct stream also blocked, starting synth fallback:', e);
         this.fallbackToProceduralSynth();
       });
     } catch {
@@ -282,12 +315,19 @@ class AudioEngine {
   }
 
   fallbackToProceduralSynth() {
-    this.radioAudioEl.pause();
-    this.directAudioEl.pause();
+    if (this.radioAudioEl) {
+      this.radioAudioEl.pause();
+      this.radioAudioEl.src = '';
+    }
+    if (this.directAudioEl) {
+      this.directAudioEl.pause();
+      this.directAudioEl.src = '';
+    }
     this.isDirectMode = false;
     this.synthActive = true;
     this.isPlaying = true;
     this.startProceduralSynth();
+    this.notify('playState', { isPlaying: true, isSynth: true });
     this.notify('synthFallback', true);
   }
 
@@ -299,15 +339,34 @@ class AudioEngine {
     this.notify('playState', { isPlaying: false, isDirect: this.isDirectMode });
   }
 
-  resume() {
+  async resume() {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      try { await this.ctx.resume(); } catch {}
+    }
     if (this.synthActive) {
-      this.startProceduralSynth();
       this.isPlaying = true;
-      this.notify('playState', { isPlaying: true });
-    } else if (this.isDirectMode) {
-      this.directAudioEl.play();
+      this.startProceduralSynth();
+      this.notify('playState', { isPlaying: true, isSynth: true });
+    } else if (this.isDirectMode && this.directAudioEl && this.directAudioEl.src) {
+      try {
+        await this.directAudioEl.play();
+        this.isPlaying = true;
+        this.notify('playState', { isPlaying: true, isDirect: true });
+      } catch (e) {
+        console.warn('Direct resume error:', e);
+        this.fallbackToProceduralSynth();
+      }
     } else if (this.radioAudioEl && this.radioAudioEl.src) {
-      this.radioAudioEl.play();
+      try {
+        await this.radioAudioEl.play();
+        this.isPlaying = true;
+        this.notify('playState', { isPlaying: true, isDirect: false });
+      } catch (e) {
+        console.warn('Radio resume error, falling back:', e);
+        this.fallbackToDirectStream();
+      }
+    } else if (this.currentStation) {
+      await this.playStation(this.currentStation);
     }
   }
 
@@ -516,6 +575,13 @@ class AudioEngine {
   // -------------------------------------------------------------
   // Ambience Stems Audio Graph & Procedural Generators
   // -------------------------------------------------------------
+  initAllStems() {
+    if (!this.ctx) return;
+    STEMS.forEach(stem => {
+      this.initStem(stem);
+    });
+  }
+
   initStem(stem) {
     if (!this.ctx) return;
     if (this.stemNodes.has(stem.id)) return;
@@ -550,7 +616,15 @@ class AudioEngine {
   }
 
   setStemVolume(stemId, vol) {
-    const obj = this.stemNodes.get(stemId);
+    if (!this.ctx) return;
+    let obj = this.stemNodes.get(stemId);
+    if (!obj) {
+      const stem = STEMS.find(s => s.id === stemId);
+      if (stem) {
+        this.initStem(stem);
+        obj = this.stemNodes.get(stemId);
+      }
+    }
     if (!obj || !this.ctx) return;
     obj.gain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.05);
 
